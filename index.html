@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Simple Bulletin Board</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="container">
+            <h1>Simple Bulletin Board</h1>
+            
+            <div class="post-form">
+                <h2>Create New Post</h2>
+                <input type="text" id="title" placeholder="Title">
+                <textarea id="content" placeholder="Content"></textarea>
+                <input type="file" id="image" accept="image/*">
+                <button onclick="createPost()">Post</button>
+            </div>
+
+            <div class="posts" id="posts">
+                <!-- Posts will be displayed here -->
+            </div>
+        </div>
+        <script type="module">
+            // Import the functions you need from the SDKs you need
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+            import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+            import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+            import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+            // TODO: Add SDKs for Firebase products that you want to use
+            // https://firebase.google.com/docs/web/setup#available-libraries
+          
+            // Your web app's Firebase configuration
+            // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+            const firebaseConfig = {
+              apiKey: "AIzaSyAPOVR2uHxhyB4JMYKiBF3BxXpCqFVCDEk",
+              authDomain: "bh-board.firebaseapp.com",
+              projectId: "bh-board",
+              storageBucket: "bh-board.firebasestorage.app",
+              messagingSenderId: "270894753216",
+              appId: "1:270894753216:web:3ac6a5dc99b07f2ad2d425",
+              measurementId: "G-TDWJ7QPQ25"
+            };
+          
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const analytics = getAnalytics(app);
+            const db = getFirestore(app);
+            const storage = getStorage(app);
+
+
+// 게시글 생성
+async function createPost() {
+    const title = document.getElementById('title').value;
+    const content = document.getElementById('content').value;
+    const imageFile = document.getElementById('image').files[0];
+
+    if (!title || !content) {
+        alert('제목과 내용을 입력해주세요.');
+        return;
+    }
+
+    try {
+        let imageUrl = '';
+        if (imageFile) {
+            const storageRef = storage.ref();
+            const imageRef = storageRef.child(`images/${Date.now()}_${imageFile.name}`);
+            await imageRef.put(imageFile);
+            imageUrl = await imageRef.getDownloadURL();
+        }
+
+        await db.collection('posts').add({
+            title,
+            content,
+            imageUrl,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        document.getElementById('title').value = '';
+        document.getElementById('content').value = '';
+        document.getElementById('image').value = '';
+        
+        loadPosts();
+    } catch (error) {
+        console.error('Error creating post:', error);
+        alert('게시글 작성 중 오류가 발생했습니다.');
+    }
+}
+
+// 게시글 수정
+async function updatePost(postId, title, content, imageFile) {
+    try {
+        const postRef = db.collection('posts').doc(postId);
+        const post = await postRef.get();
+        let imageUrl = post.data().imageUrl;
+
+        if (imageFile) {
+            const storageRef = storage.ref();
+            const imageRef = storageRef.child(`images/${Date.now()}_${imageFile.name}`);
+            await imageRef.put(imageFile);
+            imageUrl = await imageRef.getDownloadURL();
+        }
+
+        await postRef.update({
+            title,
+            content,
+            imageUrl,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        loadPosts();
+    } catch (error) {
+        console.error('Error updating post:', error);
+        alert('게시글 수정 중 오류가 발생했습니다.');
+    }
+}
+
+// 게시글 삭제
+async function deletePost(postId) {
+    if (!confirm('정말로 이 게시글을 삭제하시겠습니까?')) return;
+
+    try {
+        const postRef = db.collection('posts').doc(postId);
+        const post = await postRef.get();
+        
+        if (post.data().imageUrl) {
+            const imageRef = storage.refFromURL(post.data().imageUrl);
+            await imageRef.delete();
+        }
+
+        await postRef.delete();
+        loadPosts();
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        alert('게시글 삭제 중 오류가 발생했습니다.');
+    }
+}
+
+// 게시글 목록 로드
+async function loadPosts() {
+    const postsContainer = document.getElementById('posts');
+    postsContainer.innerHTML = '';
+
+    try {
+        const snapshot = await db.collection('posts').orderBy('createdAt', 'desc').get();
+        
+        snapshot.forEach(doc => {
+            const post = doc.data();
+            const postElement = document.createElement('div');
+            postElement.className = 'post';
+            postElement.innerHTML = `
+                <h3>${post.title}</h3>
+                <p>${post.content}</p>
+                ${post.imageUrl ? `<img src="${post.imageUrl}" alt="Post image">` : ''}
+                <div class="post-actions">
+                    <button onclick="editPost('${doc.id}')">수정</button>
+                    <button onclick="deletePost('${doc.id}')">삭제</button>
+                </div>
+            `;
+            postsContainer.appendChild(postElement);
+        });
+    } catch (error) {
+        console.error('Error loading posts:', error);
+        alert('게시글을 불러오는 중 오류가 발생했습니다.');
+    }
+}
+
+// 게시글 수정 폼 표시
+function editPost(postId) {
+    const post = document.querySelector(`[data-post-id="${postId}"]`);
+    const title = post.querySelector('h3').textContent;
+    const content = post.querySelector('p').textContent;
+    
+    document.getElementById('title').value = title;
+    document.getElementById('content').value = content;
+    
+    // 수정 버튼으로 변경
+    const postButton = document.querySelector('.post-form button');
+    postButton.textContent = '수정';
+    postButton.onclick = () => updatePost(postId, title, content, document.getElementById('image').files[0]);
+}
+
+// 페이지 로드 시 게시글 목록 표시
+window.onload = loadPosts; 
+        </script>
+    </body>
+</html>

@@ -13,7 +13,7 @@
                 <input type="text" id="title" placeholder="Title">
                 <textarea id="content" placeholder="Content"></textarea>
                 <input type="file" id="image" accept="image/*">
-                <button onclick="createPost()">Post</button>
+                <button id="postButton">Post</button>
             </div>
 
             <div class="posts" id="posts">
@@ -47,7 +47,7 @@
             const db = getFirestore(app); console.log(db);
             const storage = getStorage(app);
 
-
+document.getElementById('postButton').addEventListener('click', createPost);
 // 게시글 생성
 async function createPost() {
     const title = document.getElementById('title').value;
@@ -180,7 +180,7 @@ function editPost(postId) {
 }
 
 // 페이지 로드 시 게시글 목록 표시
-window.onload = loadPosts; 
+//window.onload = loadPosts; 
         </script>
     </body>
 </html>

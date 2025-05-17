@@ -4,6 +4,7 @@
     </head>
     <body>
         <h1>Firebase</h1>
+        <div id="fileList"></div>
         <input type="file" id="fileInput" />
         <button id="uploadButton">Upload</button>
         <div id="progressBar"></div>
@@ -14,7 +15,7 @@
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
-        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, orderBy, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js";
         import { getStorage, ref, uploadBytesResumable } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-storage.js";
         // TODO: Add SDKs for Firebase products that you want to use
         // https://firebase.google.com/docs/web/setup#available-libraries
@@ -44,18 +45,42 @@
         const status = document.getElementById('status');
         const result = document.getElementById('result');
 
-        uploadButton.addEventListener('click', () => {
-            const file = fileInput.files[0];
-            if (file) {
-                const uploadTask = uploadBytesResumable(storageRef, file);
-            }
-        });
-        function uploadFile(file) {
-            const storageRef = ref(storage, 'images');
-            const uploadTask = uploadBytesResumable(storageRef, file);
+        window.onload = getFileList;
+        async function getFileList() {
+            const fileList = document.getElementById('fileList');
+            const snapshot = await getDocs(collection(db, 'images'));
+            snapshot.forEach(doc => {
+                const fileItem = document.createElement('div');
+                fileItem.textContent = doc.data().name;
+                fileList.appendChild(fileItem);
+            });
         }
 
+        uploadButton.addEventListener('click', uploadFile);
+        function uploadFile() {
+            const fileName = fileInput.files[0].name;
+            addFileToDB(fileName);
+            const fileRef = ref(storage, `images/${fileName}`);
+            const uploadTask = uploadBytesResumable(fileRef, fileInput.files[0]);
+            uploadTask.on('state_changed', (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                progressBar.value = progress;
+            }, (error) => {
+                console.error(error);
+            }, () => {
+                console.log('Upload complete');
+            });
+        }
 
+        function addFileToDB(fileName) {
+            const fileRef = ref(storage, `images/${fileName}`);
+            const snapshot = doc(db, 'images', fileName);
+            setDoc(snapshot, {
+                name: fileName,
+                url: fileRef.fullPath
+            });
+            console.log('File added to DB');
+        }
      
       </script>
 </html>

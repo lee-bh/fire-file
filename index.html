@@ -5,6 +5,8 @@
     </head>
     <body>
         <h1>Firebase</h1>
+        <button id="signInButton">Sign In</button>
+        <button id="signOutButton">Sign Out</button>
         <div id="fileList"></div>
         <input type="file" id="fileInput" />
         <button id="uploadButton">Upload</button>
@@ -18,6 +20,7 @@
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
         import { getFirestore, collection, getDocs, query, orderBy, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-storage.js";
+        import { GoogleAuthProvider, getAuth, onAuthStateChanged, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-auth.js";
         // TODO: Add SDKs for Firebase products that you want to use
         // https://firebase.google.com/docs/web/setup#available-libraries
       
@@ -37,7 +40,8 @@
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const db = getFirestore(app);
-
+        const dbRef = collection(db, 'images');
+        const auth = getAuth(app);
         const storage = getStorage(app);
         const storageRef = ref(storage, 'images');
         const uploadButton = document.getElementById('uploadButton');
@@ -46,10 +50,12 @@
         const status = document.getElementById('status');
         const result = document.getElementById('result');
 
-        window.onload = getFileList;
+        window.onload = () => {
+            getFileList();
+        };
         async function getFileList() {
             const fileList = document.getElementById('fileList');
-            const snapshot = await getDocs(collection(db, 'images'));
+            const snapshot = await getDocs(dbRef);
             snapshot.forEach(doc => {
                 const fileItem = document.createElement('div');
                 const img = document.createElement('img');
@@ -66,6 +72,32 @@
                 fileList.appendChild(fileItem);
             });
         }
+
+        const signInButton = document.getElementById('signInButton');
+        const signOutButton = document.getElementById('signOutButton');
+        signInButton.addEventListener('click', bhSignIn);
+        function bhSignIn() {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider);
+        }
+
+        signOutButton.addEventListener('click', bhSignOut);
+        function bhSignOut() {
+            signOut(auth);
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log('User is signed in');
+                signInButton.style.display = 'none';
+                signOutButton.style.display = 'block';
+                uploadButton.style.display = 'block';
+            } else {
+                console.log('User is signed out');
+                signInButton.style.display = 'block';
+                signOutButton.style.display = 'none';
+            }
+        });
 
         uploadButton.addEventListener('click', uploadFile);
         function uploadFile() {

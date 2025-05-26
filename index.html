@@ -4,15 +4,22 @@
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <h1>Firebase - File Upload</h1>
-        <button id="signInButton">Sign In</button>
-        <button id="signOutButton">Sign Out</button>
-        <div id="fileList" class="file-list"></div>
-        <input type="file" id="fileInput" />
-        <button id="uploadButton">Upload</button>
-        <div id="progressBar"></div>
-        <div id="status"></div>
-        <div id="result"></div>
+        <header>
+            <h1>Firebase - File Upload</h1>
+            <button id="signInButton">Sign In</button>
+            <button id="signOutButton">Sign Out</button>
+        </header>
+        <section class="content">
+            <div id="fileList" class="file-list"></div>
+        </section>
+        <section class="upload">
+            <input type="file" id="fileInput" />
+            <button id="uploadButton">Upload</button>
+            <div id="result"></div>
+        </section>
+        <footer>
+            firebase-file&copy;2025. 이병학 모든권리보유.
+        </footer>
     </body>
     <script type="module">
         // Import the functions you need from the SDKs you need
@@ -50,46 +57,6 @@
         const status = document.getElementById('status');
         const result = document.getElementById('result');
 
-        // 파일 선택 시 업로드 버튼 표시
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
-                uploadButton.style.display = 'block';
-            } else {
-                uploadButton.style.display = 'none';
-            }
-        });
-
-        //시작하면 파일 리스트 가져오기
-        window.onload = () => {
-            getFileList();
-        };
-        async function getFileList() {
-            const fileList = document.getElementById('fileList');
-            const snapshot = await getDocs(dbRef);
-            snapshot.forEach(doc => {
-                const fileItem = document.createElement('div');
-                const img = document.createElement('img');
-                const fileRef = ref(storage, doc.data().url);
-                getDownloadURL(fileRef).then(url => {
-                    img.src = url;
-                });
-                img.classList.add('file-img');
-                fileItem.appendChild(img);
-                const name = document.createElement('p');
-                name.textContent = doc.data().name;
-                name.classList.add('file-name');
-                fileItem.appendChild(name);
-                fileList.appendChild(fileItem);
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'Delete';
-                deleteButton.classList.add('delete-button');
-                fileItem.appendChild(deleteButton);
-                deleteButton.addEventListener('click', () => {
-                    deleteFile(doc.id);
-                    console.log("try to delete " + doc.id);
-                });
-            });
-        }
 
         //로그인 통해서 사용자 인증
         const signInButton = document.getElementById('signInButton');
@@ -107,6 +74,7 @@
         
         //사용자 식별되면 로그인버튼 상태변경
         onAuthStateChanged(auth, (user) => {
+            console.log(user);
             if (user) {
                 console.log('User is signed in');
                 signInButton.style.display = 'none';
@@ -118,6 +86,50 @@
                 signOutButton.style.display = 'none';
             }
         });
+
+        // 파일 선택 시 업로드 버튼 표시
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadButton.style.display = 'block';
+            } else {
+                uploadButton.style.display = 'none';
+            }
+        });
+
+        //시작하면 파일 리스트 가져오기
+        window.onload = () => {
+            getFileList();
+        };
+        async function getFileList() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            const snapshot = await getDocs(dbRef);
+            snapshot.forEach(doc => {
+                const fileItem = document.createElement('div');
+                const img = document.createElement('img');
+                const fileRef = ref(storage, doc.data().url);
+                getDownloadURL(fileRef).then(url => {
+                    img.src = url;
+                });
+                img.classList.add('file-img');
+                fileItem.appendChild(img);
+                const name = document.createElement('p');
+                name.textContent = doc.data().name;
+                name.classList.add('file-name');
+                fileItem.appendChild(name);
+                fileList.appendChild(fileItem);
+                if (user) {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.classList.add('delete-button');
+                    fileItem.appendChild(deleteButton);
+                    deleteButton.addEventListener('click', () => {
+                        deleteFile(doc.id);
+                        console.log("try to delete " + doc.id);
+                    });
+                }
+            });
+        }
 
         //파일 업로드하면 이름은 데이터베이스에 추가하고 파일 업로드 진행
         uploadButton.addEventListener('click', uploadFile);
@@ -162,15 +174,15 @@
         async function deleteFile(fileId) {
             const fileRef = ref(storage, `images/${fileId}`);
             const snapshot = doc(db, 'images', fileId);
-            try {
                 await Promise.all([
                     deleteObject(fileRef),
                     deleteDoc(snapshot)
-                ]);
-                console.log('File Deleted');
-            } catch (error) {
-                console.error(error);
-            }
+                ]).then(() => {
+                    console.log('File Deleted');
+                    getFileList();
+                }).catch((error) => {
+                    console.error(error);
+                });
         }
       </script>
 </html>

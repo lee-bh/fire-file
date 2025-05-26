@@ -1,13 +1,13 @@
 <html>
     <head>
-        <title>Firebase</title>
+        <title>Firebase - File Upload</title>
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <h1>Firebase</h1>
+        <h1>Firebase - File Upload</h1>
         <button id="signInButton">Sign In</button>
         <button id="signOutButton">Sign Out</button>
-        <div id="fileList"></div>
+        <div id="fileList" class="file-list"></div>
         <input type="file" id="fileInput" />
         <button id="uploadButton">Upload</button>
         <div id="progressBar"></div>
@@ -49,6 +49,15 @@
         const progressBar = document.getElementById('progressBar');
         const status = document.getElementById('status');
         const result = document.getElementById('result');
+
+        // 파일 선택 시 업로드 버튼 표시
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadButton.style.display = 'block';
+            } else {
+                uploadButton.style.display = 'none';
+            }
+        });
 
         //시작하면 파일 리스트 가져오기
         window.onload = () => {
@@ -113,10 +122,20 @@
         //파일 업로드하면 이름은 데이터베이스에 추가하고 파일 업로드 진행
         uploadButton.addEventListener('click', uploadFile);
         function uploadFile() {
-            const fileName = fileInput.files[0].name;
+            const file = fileInput.files[0];
+            const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+
+            if (file.size > maxSize) {
+                alert('파일 크기는 10MB를 초과할 수 없습니다.');
+                fileInput.value = ''; // 파일 선택 초기화
+                uploadButton.style.display = 'none';
+                return;
+            }
+
+            const fileName = file.name;
             addFileToDB(fileName);
             const fileRef = ref(storage, `images/${fileName}`);
-            const uploadTask = uploadBytesResumable(fileRef, fileInput.files[0]);
+            const uploadTask = uploadBytesResumable(fileRef, file);
             uploadTask.on('state_changed', (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                 progressBar.value = progress;

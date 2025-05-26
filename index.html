@@ -18,8 +18,8 @@
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
-        import { getFirestore, collection, getDocs, query, orderBy, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js";
-        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-storage.js";
+        import { getFirestore, collection, getDocs, query, orderBy, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-storage.js";
         import { GoogleAuthProvider, getAuth, onAuthStateChanged, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-auth.js";
         // TODO: Add SDKs for Firebase products that you want to use
         // https://firebase.google.com/docs/web/setup#available-libraries
@@ -50,6 +50,7 @@
         const status = document.getElementById('status');
         const result = document.getElementById('result');
 
+        //시작하면 파일 리스트 가져오기
         window.onload = () => {
             getFileList();
         };
@@ -70,9 +71,18 @@
                 name.classList.add('file-name');
                 fileItem.appendChild(name);
                 fileList.appendChild(fileItem);
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.classList.add('delete-button');
+                fileItem.appendChild(deleteButton);
+                deleteButton.addEventListener('click', () => {
+                    deleteFile(doc.id);
+                    console.log("try to delete " + doc.id);
+                });
             });
         }
 
+        //로그인 통해서 사용자 인증
         const signInButton = document.getElementById('signInButton');
         const signOutButton = document.getElementById('signOutButton');
         signInButton.addEventListener('click', bhSignIn);
@@ -85,7 +95,8 @@
         function bhSignOut() {
             signOut(auth);
         }
-
+        
+        //사용자 식별되면 로그인버튼 상태변경
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 console.log('User is signed in');
@@ -99,6 +110,7 @@
             }
         });
 
+        //파일 업로드하면 이름은 데이터베이스에 추가하고 파일 업로드 진행
         uploadButton.addEventListener('click', uploadFile);
         function uploadFile() {
             const fileName = fileInput.files[0].name;
@@ -116,6 +128,7 @@
             });
         }
 
+        //파일 추가
         function addFileToDB(fileName) {
             const fileRef = ref(storage, `images/${fileName}`);
             const snapshot = doc(db, 'images', fileName);
@@ -125,6 +138,23 @@
             });
             console.log('File added to DB');
         }
-     
+
+        //파일 삭제
+        async function deleteFile(fileId) {
+            const fileRef = ref(storage, `images/${fileId}`);
+            try {
+                await deleteObject(fileRef);
+                console.log('File deleted');
+            } catch (error) {
+                console.error(error);
+            }
+            const snapshot = doc(db, 'images', fileId);
+            try {
+                await deleteDoc(snapshot);
+                console.log('File deleted from DB');
+            } catch (error) {
+                console.error(error); 
+            }
+        }
       </script>
 </html>

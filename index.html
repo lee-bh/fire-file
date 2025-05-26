@@ -50,8 +50,16 @@
             const fileList = document.getElementById('fileList');
             const snapshot = await getDocs(collection(db, 'images'));
             snapshot.forEach(doc => {
+                
                 const fileItem = document.createElement('div');
-                fileItem.textContent = doc.data().name;
+                const img = document.createElement('img');
+                img.src = doc.data().url;
+                img.classList.add('file-img');
+                fileItem.appendChild(img);
+                const name = document.createElement('div');
+                name.textContent = doc.data().name;
+                name.classList.add('file-name');
+                fileItem.appendChild(name);
                 fileList.appendChild(fileItem);
             });
         }

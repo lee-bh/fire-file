@@ -1,6 +1,7 @@
 <html>
     <head>
         <title>Firebase</title>
+        <link rel="stylesheet" href="style.css">
     </head>
     <body>
         <h1>Firebase</h1>
@@ -16,7 +17,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
         import { getFirestore, collection, getDocs, query, orderBy, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js";
-        import { getStorage, ref, uploadBytesResumable } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-storage.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-storage.js";
         // TODO: Add SDKs for Firebase products that you want to use
         // https://firebase.google.com/docs/web/setup#available-libraries
       
@@ -50,13 +51,15 @@
             const fileList = document.getElementById('fileList');
             const snapshot = await getDocs(collection(db, 'images'));
             snapshot.forEach(doc => {
-                
                 const fileItem = document.createElement('div');
                 const img = document.createElement('img');
-                img.src = doc.data().url;
+                const fileRef = ref(storage, doc.data().url);
+                getDownloadURL(fileRef).then(url => {
+                    img.src = url;
+                });
                 img.classList.add('file-img');
                 fileItem.appendChild(img);
-                const name = document.createElement('div');
+                const name = document.createElement('p');
                 name.textContent = doc.data().name;
                 name.classList.add('file-name');
                 fileItem.appendChild(name);
@@ -77,6 +80,7 @@
                 console.error(error);
             }, () => {
                 console.log('Upload complete');
+                getFileList();
             });
         }
 

@@ -142,18 +142,15 @@
         //파일 삭제
         async function deleteFile(fileId) {
             const fileRef = ref(storage, `images/${fileId}`);
-            try {
-                await deleteObject(fileRef);
-                console.log('File deleted');
-            } catch (error) {
-                console.error(error);
-            }
             const snapshot = doc(db, 'images', fileId);
             try {
-                await deleteDoc(snapshot);
-                console.log('File deleted from DB');
+                await Promise.all([
+                    deleteObject(fileRef),
+                    deleteDoc(snapshot)
+                ]);
+                console.log('File Deleted');
             } catch (error) {
-                console.error(error); 
+                console.error(error);
             }
         }
       </script>
